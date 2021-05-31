@@ -1,0 +1,155 @@
+let config = require("config")
+let data = require("data")
+
+let tnew = loadstring("return {}")
+
+let NONE = "\0"
+
+let split = { str ->
+    let len = #str
+    let last = 1
+    let words = tnew()
+
+    while (last != len) {
+        let match = config.NEXT_SEP(str, last)
+
+        if (last != 1 || match[1] != 1)
+            words[#words + 1] = str:sub(last, match[1] - 1)
+
+        last = match[2]
+    }
+
+    if (last != len + 1)
+        words[#words + 1] = str:sub(last, -1)
+
+    return words
+}
+
+return { filename ->
+    let chain = data.from_file(filename)
+    let N = chain.N
+
+    let tbl = tnew()
+
+    tbl.save = { dispose ->
+        data.to_file(chain, N, filename)
+
+        if (dispose) {
+            chain = nil
+            tbl.save = nil
+            tbl.feed = nil
+            tbl.generate = nil
+            collectgarbage()
+            collectgarbage()
+        }
+    }
+
+    tbl.feed = { sentence, cont ->
+        -- cont ignored for now
+
+        if (!config.ALLOW(sentence)) return nil
+
+        -- get words
+        let words = split(sentence)
+
+        let len = #words
+        if (len < config.MINWORDS) return nil
+
+        let padded = tnew()
+
+        -- pad start with N NONEs
+        for (i=1,N)
+            padded[i] = NONE
+
+        for (i,v in ipairs(words))
+            padded[i+N] = v
+
+        -- end with a NONE
+        padded[len+N+1] = NONE
+        words = nil
+
+        -- copy padded to lookbehind and preprocess
+        let lb = tnew()
+        for (i,v in ipairs(padded))
+            lb[i] = config.PREPROCESS(v)
+
+        -- slide across padded words and feed to the chain
+        for (i=1,len+N-1) {
+            let t = chain.words
+
+            -- traverse chain
+            for (j=1,N) {
+                let n = t[lb[i + j - 1]]
+                if (!n) {
+                    n = tnew()
+                    t[lb[i + j - 1]] = n
+                }
+                t = n
+            }
+
+            -- add word
+            t[#t+1] = padded[i + N]
+        }
+    }
+
+    tbl.generate = { start, include ->
+        if (type(start) == "string")
+            start = split(start)
+
+        if (!start) start = tnew()
+
+        -- pad lookbehind properly
+        let lb = tnew()
+        if (#start < N) {
+            -- pad with NONE
+            for (i=1,N - #start)
+                lb[i] = NONE
+
+            for (i=1, #start)
+                lb[N - #start + i] = start[i]
+        } else if (#start > N) {
+            -- keep last N words, discard the rest
+            for (i=1,N)
+                lb[i] = start[#start - config.N + i]
+        } else lb = start
+
+        start = nil
+
+        let str = nil
+        if (include)
+            str = table.concat(lb, " ")
+
+        -- preprocess lookbehind
+        for (i,v in ipairs(lb))
+            lb[i] = config.PREPROCESS(v)
+
+        -- generate
+        while (#str < config.MAXCHARS) {
+            -- traverse chain
+            let t = chain.words
+            for (i=1,N) {
+                t = t[lb[i]]
+                if (!t) return str
+            }
+
+            -- get word
+            let word = t[math.random(1, #t)]
+            if (word == NONE)
+                return str
+
+            -- append to str
+            if (str)
+                str = str .. " " .. word
+            else
+                str = word
+
+            -- rotate lookbehind window
+            for (i=2,N) lb[i-1] = lb[i]
+            lb[N] = config.PREPROCESS(word)
+        }
+
+        return str .. "[MAXCHARS]"
+    }
+
+    return tbl
+}

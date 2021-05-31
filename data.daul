@@ -1,0 +1,30 @@
+let tnew = loadstring("return {}")
+let mod = tnew()
+
+--let signature = "\255MARKOV"
+
+mod.from_file = { filename ->
+    let file = io.open(filename, "r")
+    if (!file) {
+        let chain = tnew()
+        chain.N = config.N
+        chain.words = tnew()
+        return chain
+    }
+    let content = file:read("*a")
+    file:close()
+
+    return parse(content)
+}
+
+mod.to_file = { chain, filename ->
+    let file = io.open(filename, "wb")
+
+    if (!file)
+        print(filename)
+
+    file:write(encode(chain))
+    file:close()
+}
+
+return mod
