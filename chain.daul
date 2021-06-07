@@ -13,14 +13,20 @@ let split = { str ->
     while (last != len) {
         let match = config.NEXT_SEP(str, last)
 
-        if (last != 1 || match[1] != 1)
-            words[#words + 1] = str:sub(last, match[1] - 1)
+        if (!match[1]) break
+
+        if (last != 1 || match[1] != 1) {
+            let a = str:sub(last, match[1] - 1)
+            words[#words + 1] = a
+        }
 
         last = match[2]
     }
 
-    if (last != len + 1)
-        words[#words + 1] = str:sub(last, -1)
+    if (last != len + 1) {
+        let a = str:sub(last, -1)
+        words[#words + 1] = a
+    }
 
     return words
 }
@@ -81,8 +87,9 @@ return { filename ->
             for (j=1,N) {
                 let n = t[lb[i + j - 1]]
                 if (!n) {
+                    let k = lb[i + j - 1]
                     n = tnew()
-                    t[lb[i + j - 1]] = n
+                    t[k] = n
                 }
                 t = n
             }
