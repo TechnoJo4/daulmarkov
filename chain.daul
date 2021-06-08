@@ -16,7 +16,7 @@ let split = { str ->
         if (!match[1]) break
 
         if (last != 1 || match[1] != 1) {
-            let a = str:sub(last, match[1] - 1)
+            let a = string.sub(str, last, match[1] - 1)
             words[#words + 1] = a
         }
 
@@ -24,7 +24,7 @@ let split = { str ->
     }
 
     if (last != len + 1) {
-        let a = str:sub(last, -1)
+        let a = string.sub(str, last, -1)
         words[#words + 1] = a
     }
 
@@ -67,8 +67,10 @@ return { filename ->
         for (i=1,N)
             padded[i] = NONE
 
-        for (i,v in ipairs(words))
+        for (i,v in ipairs(words)) {
             padded[i+N] = v
+        }
+        print(len, N, len+N, len+N+1)
 
         -- end with a NONE
         padded[len+N+1] = NONE
@@ -80,14 +82,14 @@ return { filename ->
             lb[i] = config.PREPROCESS(v)
 
         -- slide across padded words and feed to the chain
-        for (i=1,len+N-1) {
+        for (i=1,len) {
             let t = chain.words
 
             -- traverse chain
             for (j=1,N) {
-                let n = t[lb[i + j - 1]]
+                let k = lb[i + j - 1]
+                let n = t[k]
                 if (!n) {
-                    let k = lb[i + j - 1]
                     n = tnew()
                     t[k] = n
                 }
@@ -95,8 +97,11 @@ return { filename ->
             }
 
             -- add word
-            t[#t+1] = padded[i + N]
+            let w = padded[i + N]
+            t[#t + 1] = w
         }
+
+        tbl.debug()
     }
 
     tbl.generate = { start, include ->
@@ -136,7 +141,9 @@ return { filename ->
             let t = chain.words
             for (i=1,N) {
                 t = t[lb[i]]
-                if (!t) return str
+                if (!t) {
+                    return str
+                }
             }
 
             -- get word
@@ -151,11 +158,45 @@ return { filename ->
                 str = word
 
             -- rotate lookbehind window
-            for (i=2,N) lb[i-1] = lb[i]
-            lb[N] = config.PREPROCESS(word)
+            let j = 2
+            while (j <= N) {
+                lb[j-1] = lb[j]
+                j = j + 1
+            }
+            let p = config.PREPROCESS(word)
+            lb[N] = p
         }
 
         return str .. "[MAXCHARS]"
+    }
+
+    let visited = tnew()
+    let p = { v, i ->
+        i = i || 0
+
+        if (type(v) == "function") {
+            return "function"
+        }
+        else if (type(v) == "table") {
+            if (visited[v]) return "visited"
+            visited[v] = true
+
+            let s = ""
+
+            for (k, v2 in pairs(v)) {
+                if (k == NONE) k = "NONE"
+
+                s = s .. "\n" .. " ":rep(i) .. tostring(k) .. " = " .. p(v2, i + 1)
+            }
+
+            return s
+        } else if (v == NONE) {
+            return "NONE"
+        } else return tostring(v)
+    }
+
+    tbl.debug = {
+        print(p(chain.words))
     }
 
     return tbl
