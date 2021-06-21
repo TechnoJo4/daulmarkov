@@ -1,34 +1,59 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>markov</title>
-        <script type="text/javascript">
-            let start = document.getElementById("start");
-            let area = document.getElementById("generated");
-
-            async function generate() {
-                area.value = (await fetch("/generate", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain'
-                    },
-                    body: start.value
-                })).text();
+        <title>Markov</title>
+        <style type="text/css">
+            body {
+                background-color: #000;
             }
-        </script>
+            main {
+                border-radius: 16px;
+                padding: 24px;
+                width: 60vw;
+                margin-left: auto;
+                margin-right: auto;
+                margin-top: 24px;
+                background-color: #fff;
+            }
+            img {
+                width: 256px;
+                height: 256px;
+            }
+            textarea {
+                margin-top: 24px;
+                width: 80%;
+                resize: none;
+            }
+            button {
+                width: 50%;
+                text-align: center;
+            }
+        </style>
     </head>
     <body>
-        <h1>markov</h1>
+        <main>
+            <center>
+                <h1><pre>Markov</pre></h1>
+                <img src="/daul.png">
 
-        <form enctype="multipart/form-data" method="post" action="feed">
-            <input id="fileupload" name="content" type="file" />
-            <input type="submit" value="submit" id="submit" />
-        </form>
+                <form enctype="multipart/form-data" accept-charset="utf-8" method="post" action="feed"><br/>
+                    <input id="fileupload" name="content" type="file" />
+                    <input type="submit" value="Feed" id="submit" />
+                </form><br/>
 
-        <form>
-            <input id="start" type="text" />
-            <textarea readonly id="generated" rows="10" cols="50"></textarea>
-            <button onclick="generate()">Generate</button>
-        </form>
+                <div>
+                    <textarea readonly id="generated" rows="25"></textarea><br/>
+                    <button onclick="generate()">Generate</button>
+                </div>
+            </center>
+
+            <script type="text/javascript">
+                let area = document.getElementById("generated");
+
+                async function generate() {
+                    area.value = await (await fetch("/generate", {method: 'POST'})).text();
+                }
+            </script>
+        </main>
     </body>
 </html>

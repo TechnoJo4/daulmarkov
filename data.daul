@@ -2,10 +2,10 @@ let config = require("config")
 let tnew = loadstring("return {}")
 let mod = tnew()
 
---let signature = "\255MARKOV"
+let db = require("db")
 
 mod.from_file = { filename ->
-    let file = io.open(filename, "r")
+    let file = io.open(filename, "rb")
     if (!file) {
         let chain = tnew()
         chain.N = config.N
@@ -15,16 +15,12 @@ mod.from_file = { filename ->
     let content = file:read("*a")
     file:close()
 
-    return parse(content)
+    return db.deserialize(content)
 }
 
 mod.to_file = { chain, filename ->
     let file = io.open(filename, "wb")
-
-    if (!file)
-        print(filename)
-
-    file:write(encode(chain))
+    file:write(db.serialize(chain))
     file:close()
 }
 

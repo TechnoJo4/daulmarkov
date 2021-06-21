@@ -38,7 +38,7 @@ return { filename ->
     let tbl = tnew()
 
     tbl.save = { dispose ->
-        data.to_file(chain, N, filename)
+        data.to_file(chain, filename)
 
         if (dispose) {
             chain = nil
@@ -70,7 +70,6 @@ return { filename ->
         for (i,v in ipairs(words)) {
             padded[i+N] = v
         }
-        print(len, N, len+N, len+N+1)
 
         -- end with a NONE
         padded[len+N+1] = NONE
@@ -100,8 +99,6 @@ return { filename ->
             let w = padded[i + N]
             t[#t + 1] = w
         }
-
-        tbl.debug()
     }
 
     tbl.generate = { start, include ->
@@ -152,6 +149,7 @@ return { filename ->
                 return str
 
             -- append to str
+            
             if (str)
                 str = str .. " " .. word
             else
